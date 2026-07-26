@@ -64,15 +64,30 @@
     border-radius:0 0 28px 28px;
     box-shadow:var(--shadow);
   }
+  .header-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:0 0 10px;
+  }
   .brand-logo{
     display:block;
     height:32px;
     width:auto;
-    margin:0 0 10px;
-    margin-inline-start:auto;
+    margin:0;
     opacity:0.95;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,0.15));
   }
+  .header-settings-btn{
+    width:34px; height:34px; border-radius:50%;
+    background:rgba(255,255,255,0.16);
+    border:none; color:var(--primary-ink);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex:none;
+    transition:background .15s, transform .15s;
+  }
+  .header-settings-btn:active{ transform:scale(0.92); background:rgba(255,255,255,0.28); }
+  .header-settings-btn svg{ width:18px; height:18px; }
   .eyebrow{
     font-size:12.5px;
     letter-spacing:0.06em;
@@ -254,7 +269,8 @@
     color:var(--ink-soft); font-family:inherit; font-size:11px; font-weight:600;
     padding:4px;
   }
-  .tabbar button .ic{ font-size:19px; }
+  .tabbar button .ic{ font-size:19px; display:flex; }
+  .tabbar button .ic svg{ width:21px; height:21px; stroke-width:2; }
   .tabbar button.active{ color:var(--primary); }
 
   /* ---------- settings ---------- */
@@ -334,6 +350,31 @@
   .sheet-actions{ display:flex; gap:10px; margin-top:6px; }
   .sheet-actions .btn{ flex:1; }
 
+  /* ---------- quick settings sheet ---------- */
+  .qs-card{
+    background:var(--surface); border-radius:var(--radius-md);
+    padding:6px; margin-bottom:14px; box-shadow:var(--shadow);
+  }
+  .qs-card h3{ font-size:12.5px; color:var(--ink-soft); font-weight:700; margin:10px 12px 6px; }
+  .qs-row{
+    display:flex; align-items:center; gap:10px;
+    width:100%; border:none; background:transparent;
+    font-family:inherit; font-size:14px; font-weight:600; color:var(--ink);
+    padding:12px 10px; border-radius:12px; cursor:pointer; text-align:right;
+    transition:background .15s;
+  }
+  .qs-row:active{ background:var(--bg); }
+  .qs-icon-badge{
+    width:32px; height:32px; border-radius:10px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--bg); color:var(--primary);
+  }
+  .qs-icon-badge svg{ width:17px; height:17px; }
+  .qs-version{
+    text-align:center; font-size:12px; color:var(--ink-soft);
+    margin:0 0 18px;
+  }
+
   .toast{
     position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(10px);
     background:var(--ink); color:#fff; padding:10px 18px; border-radius:99px;
@@ -348,7 +389,10 @@
 <div id="app">
 
   <header class="top">
-    <img src="assets/logo-nelin.png" alt="Nelin" class="brand-logo" />
+    <div class="header-row">
+      <button class="header-settings-btn" id="header-settings-btn" aria-label="تنظیمات سریع" data-icon="settings"></button>
+      <img src="assets/logo-nelin.png" alt="Nelin" class="brand-logo" />
+    </div>
     <p class="eyebrow" id="eyebrow-date">—</p>
     <h1 class="title">یادآور قرص</h1>
     <div class="adherence-line">
@@ -375,10 +419,30 @@
   <button class="fab" id="fab-add" aria-label="افزودن دارو">＋</button>
 
   <nav class="tabbar">
-    <button class="tab-btn active" data-tab="today"><span class="ic">☀</span>امروز</button>
-    <button class="tab-btn" data-tab="meds"><span class="ic">💊</span>داروها</button>
-    <button class="tab-btn" data-tab="settings"><span class="ic">⚙</span>تنظیمات</button>
+    <button class="tab-btn active" data-tab="today"><span class="ic" data-icon="today"></span>امروز</button>
+    <button class="tab-btn" data-tab="meds"><span class="ic" data-icon="meds"></span>داروها</button>
+    <button class="tab-btn" data-tab="settings"><span class="ic" data-icon="settings"></span>تنظیمات</button>
   </nav>
+
+  <div class="overlay" id="qs-overlay">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <h2>تنظیمات</h2>
+      <div class="qs-card">
+        <h3>نوتیفیکیشن</h3>
+        <button type="button" class="qs-row" id="qs-test-btn">
+          <span class="qs-icon-badge" data-icon="bell"></span>
+          تست یادآوری
+        </button>
+        <button type="button" class="qs-row" id="qs-reenable-btn">
+          <span class="qs-icon-badge" data-icon="refresh"></span>
+          فعال‌سازی مجدد نوتیفیکیشن
+        </button>
+      </div>
+      <p class="qs-version">نسخه‌ی نرم‌افزار ۱.۰۱</p>
+      <button type="button" class="btn btn-primary" id="qs-close-btn" style="width:100%">بستن</button>
+    </div>
+  </div>
 
   <div class="overlay" id="overlay">
     <div class="sheet">
@@ -449,6 +513,36 @@ function loadLog(){
   catch(e){ return {}; }
 }
 function saveLog(log){ localStorage.setItem(LOG_KEY, JSON.stringify(log)); }
+
+/* ================= آیکون‌ها ================= */
+const ICONS = {
+  today: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4.2"/>
+      <path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>
+    </svg>`,
+  meds: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.3" y="9.5" width="17.4" height="7" rx="3.5" transform="rotate(-35 12 12)"/>
+      <line x1="12" y1="7.3" x2="12" y2="16.7" transform="rotate(-35 12 12)"/>
+    </svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3.2"/>
+      <path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.8a7.6 7.6 0 0 0-2.6-1.5L14 2.3h-4l-.5 2.6a7.6 7.6 0 0 0-2.6 1.5l-2.3-.8-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.8c.77.66 1.65 1.17 2.6 1.5l.5 2.6h4l.5-2.6a7.6 7.6 0 0 0 2.6-1.5l2.3.8 2-3.4-2-1.5Z"/>
+    </svg>`,
+  bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 10a6 6 0 0 1 12 0c0 4.2 1.3 5.4 2 6.2H4c.7-.8 2-2 2-6.2Z"/>
+      <path d="M10 19a2.2 2.2 0 0 0 4 0"/>
+    </svg>`,
+  refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 11a8 8 0 1 0-2.3 5.7"/>
+      <path d="M20 5v6h-6"/>
+    </svg>`
+};
+function injectIcons(){
+  document.querySelectorAll("[data-icon]").forEach(el => {
+    const name = el.dataset.icon;
+    if (ICONS[name]) el.innerHTML = ICONS[name];
+  });
+}
 
 let meds = loadMeds();
 let log = loadLog();
@@ -863,6 +957,51 @@ function renderAll(){
   renderSettings();
 }
 renderAll();
+injectIcons();
+
+/* ================= تنظیمات سریع (هدر) ================= */
+function openQuickSettings(){
+  document.getElementById("qs-overlay").classList.add("open");
+}
+function closeQuickSettings(){
+  document.getElementById("qs-overlay").classList.remove("open");
+}
+document.getElementById("header-settings-btn").addEventListener("click", openQuickSettings);
+document.getElementById("qs-close-btn").addEventListener("click", closeQuickSettings);
+document.getElementById("qs-overlay").addEventListener("click", (e) => {
+  if (e.target.id === "qs-overlay") closeQuickSettings();
+});
+
+document.getElementById("qs-test-btn").addEventListener("click", async () => {
+  if (!("Notification" in window)){ showToast("این مرورگر از اعلان پشتیبانی نمی‌کند"); return; }
+  if (Notification.permission !== "granted"){
+    const res = await Notification.requestPermission();
+    if (res !== "granted"){ showToast("اجازهٔ اعلان داده نشد"); return; }
+  }
+  const title = "یادآور قرص — تست";
+  const body = "این یک اعلان آزمایشی است. اگر این را می‌بینی، اعلان‌ها درست کار می‌کنند.";
+  if (navigator.serviceWorker && navigator.serviceWorker.controller){
+    navigator.serviceWorker.controller.postMessage({ type:"SHOW_REMINDER", title, body, tag:"test-notif" });
+  } else {
+    new Notification(title, { body, icon:"icons/icon-192.png" });
+  }
+  showToast("اعلان تست ارسال شد");
+});
+
+document.getElementById("qs-reenable-btn").addEventListener("click", async () => {
+  if (!("Notification" in window)){ showToast("این مرورگر از اعلان پشتیبانی نمی‌کند"); return; }
+  try{
+    if ("serviceWorker" in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+      await navigator.serviceWorker.register("sw.js");
+    }
+  } catch(e){ /* ignore, still try permission */ }
+  const res = await Notification.requestPermission();
+  renderSettings();
+  if (res === "granted") showToast("نوتیفیکیشن دوباره فعال شد");
+  else showToast("اجازهٔ اعلان داده نشد");
+});
 
 /* ================= بررسی دوره‌ای برای اعلان ================= */
 let notifiedThisMinute = new Set();
