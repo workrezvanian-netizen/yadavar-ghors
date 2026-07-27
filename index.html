@@ -58,7 +58,7 @@
   }
   /* ---------- header ---------- */
   header.top{
-    padding:22px 20px 18px;
+    padding:calc(22px + env(safe-area-inset-top)) 20px 18px;
     background:linear-gradient(160deg, var(--primary) 0%, var(--primary-deep) 100%);
     color:var(--primary-ink);
     border-radius:0 0 28px 28px;
@@ -161,7 +161,7 @@
 
   main{
     flex:1;
-    padding:6px 16px 110px;
+    padding:6px 16px 130px;
   }
   section.view{ display:none; }
   section.view.active{ display:block; }
@@ -231,14 +231,17 @@
   .icon-btn{
     border:none; background:var(--bg); width:34px; height:34px;
     border-radius:10px; display:flex;align-items:center;justify-content:center;
-    cursor:pointer; color:var(--ink-soft); flex:none; font-size:15px;
+    cursor:pointer; color:var(--ink-soft); flex:none; transition:.15s;
   }
+  .icon-btn svg{ width:16px; height:16px; }
+  .icon-btn:active{ transform:scale(0.92); }
+  .icon-btn.danger{ background:#F4E4E1; color:var(--danger); }
 
   /* ---------- FAB ---------- */
   .fab{
     position:fixed;
     inset-inline-end:calc(50% - 240px + 22px);
-    bottom:96px;
+    bottom:calc(96px + env(safe-area-inset-bottom));
     width:56px;height:56px;border-radius:50%;
     background:var(--gold);
     color:var(--ink);
@@ -256,23 +259,33 @@
   /* ---------- bottom tab bar ---------- */
   .tabbar{
     position:fixed;
-    bottom:0; left:0; right:0;
-    max-width:480px; margin:0 auto;
+    bottom:calc(14px + env(safe-area-inset-bottom)); left:16px; right:16px;
+    max-width:448px; margin:0 auto;
     background:var(--surface);
-    border-top:1px solid var(--line);
+    border-top:none;
+    border-radius:22px;
     display:flex;
-    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    gap:6px;
+    padding:8px;
+    box-shadow:0 16px 32px -14px rgba(22,48,45,0.35);
     z-index:15;
   }
   .tabbar button{
     flex:1; border:none; background:transparent; cursor:pointer;
     display:flex; flex-direction:column; align-items:center; gap:3px;
-    color:var(--ink-soft); font-family:inherit; font-size:11px; font-weight:600;
-    padding:4px;
+    color:var(--ink-soft); font-family:inherit; font-size:11px; font-weight:700;
+    padding:9px 4px;
+    border-radius:15px;
+    transition:background .2s, color .2s, transform .15s;
   }
+  .tabbar button:active{ transform:scale(0.95); }
   .tabbar button .ic{ font-size:19px; display:flex; }
-  .tabbar button .ic svg{ width:21px; height:21px; stroke-width:2; }
-  .tabbar button.active{ color:var(--primary); }
+  .tabbar button .ic svg{ width:22px; height:22px; }
+  .tabbar button.active{
+    color:#fff;
+    background:linear-gradient(160deg, var(--primary) 0%, var(--primary-deep) 100%);
+    box-shadow:0 8px 16px -6px rgba(31,111,107,0.55);
+  }
 
   /* ---------- settings ---------- */
   .card{
@@ -386,7 +399,7 @@
   }
 
   .toast{
-    position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(10px);
+    position:fixed; bottom:calc(96px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%) translateY(10px);
     background:var(--ink); color:#fff; padding:10px 18px; border-radius:99px;
     font-size:13px; opacity:0; pointer-events:none; transition:.25s; z-index:60; white-space:nowrap;
   }
@@ -577,25 +590,35 @@ function saveLog(log){ localStorage.setItem(LOG_KEY, JSON.stringify(log)); }
 
 /* ================= آیکون‌ها ================= */
 const ICONS = {
-  today: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="4.2"/>
-      <path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>
+  today: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="12" r="4.9"/>
+      <g stroke="currentColor" stroke-width="2.3" stroke-linecap="round">
+        <path d="M12 1.8v2.5M12 19.7v2.5M4.3 4.3l1.8 1.8M17.9 17.9l1.8 1.8M1.8 12h2.5M19.7 12h2.5M4.3 19.7l1.8-1.8M17.9 6.1l1.8-1.8"/>
+      </g>
     </svg>`,
-  meds: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3.3" y="9.5" width="17.4" height="7" rx="3.5" transform="rotate(-35 12 12)"/>
-      <line x1="12" y1="7.3" x2="12" y2="16.7" transform="rotate(-35 12 12)"/>
+  meds: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <g transform="rotate(-35 12 12)">
+        <path d="M3.3 12a5.2 5.2 0 0 1 5.2-5.2h1.9v10.4H8.5A5.2 5.2 0 0 1 3.3 12Z"/>
+        <path d="M20.7 12a5.2 5.2 0 0 0-5.2-5.2h-1.9v10.4h1.9A5.2 5.2 0 0 0 20.7 12Z" opacity="0.55"/>
+      </g>
     </svg>`,
-  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3.2"/>
-      <path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.8a7.6 7.6 0 0 0-2.6-1.5L14 2.3h-4l-.5 2.6a7.6 7.6 0 0 0-2.6 1.5l-2.3-.8-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.8c.77.66 1.65 1.17 2.6 1.5l.5 2.6h4l.5-2.6a7.6 7.6 0 0 0 2.6-1.5l2.3.8 2-3.4-2-1.5Z"/>
+  settings: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2Zm9.1 2.3-1.9-.3a7.4 7.4 0 0 0-.6-1.5l1.2-1.5a1 1 0 0 0-.1-1.3l-1.5-1.5a1 1 0 0 0-1.3-.1l-1.5 1.2a7.4 7.4 0 0 0-1.5-.6l-.3-1.9a1 1 0 0 0-1-.8h-2.1a1 1 0 0 0-1 .8l-.3 1.9a7.4 7.4 0 0 0-1.5.6l-1.5-1.2a1 1 0 0 0-1.3.1L3.4 6.1a1 1 0 0 0-.1 1.3l1.2 1.5a7.4 7.4 0 0 0-.6 1.5l-1.9.3a1 1 0 0 0-.8 1v2.1a1 1 0 0 0 .8 1l1.9.3c.15.53.36 1.03.6 1.5L3.3 17.6a1 1 0 0 0 .1 1.3l1.5 1.5a1 1 0 0 0 1.3.1l1.5-1.2c.47.24.97.45 1.5.6l.3 1.9a1 1 0 0 0 1 .8h2.1a1 1 0 0 0 1-.8l.3-1.9c.53-.15 1.03-.36 1.5-.6l1.5 1.2a1 1 0 0 0 1.3-.1l1.5-1.5a1 1 0 0 0 .1-1.3l-1.2-1.5c.24-.47.45-.97.6-1.5l1.9-.3a1 1 0 0 0 .8-1v-2.1a1 1 0 0 0-.8-1Z"/>
     </svg>`,
-  bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6 10a6 6 0 0 1 12 0c0 4.2 1.3 5.4 2 6.2H4c.7-.8 2-2 2-6.2Z"/>
-      <path d="M10 19a2.2 2.2 0 0 0 4 0"/>
+  bell: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2.2a1.3 1.3 0 0 0-1.3 1.3v.6A6.5 6.5 0 0 0 5.5 10.5c0 3.9-1 5.1-1.8 6a1 1 0 0 0 .7 1.7h15.2a1 1 0 0 0 .7-1.7c-.8-.9-1.8-2.1-1.8-6a6.5 6.5 0 0 0-5.2-6.4v-.6A1.3 1.3 0 0 0 12 2.2Z"/>
+      <path d="M9.6 19.6a2.4 2.4 0 0 0 4.8 0Z"/>
     </svg>`,
-  refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
       <path d="M20 11a8 8 0 1 0-2.3 5.7"/>
-      <path d="M20 5v6h-6"/>
+      <path d="M20 4.5V11h-6.5"/>
+    </svg>`,
+  edit: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/>
+    </svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 2.5h6a1 1 0 0 1 1 1V5h4.25a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1 0-1.5H8V3.5a1 1 0 0 1 1-1Z"/>
+      <path d="M5.4 8h13.2l-.9 11.2a2 2 0 0 1-2 1.8H8.3a2 2 0 0 1-2-1.8L5.4 8Z"/>
     </svg>`
 };
 function injectIcons(){
@@ -606,25 +629,28 @@ function injectIcons(){
 }
 
 const SHAPE_ICONS = {
-  tablet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="8.5"/>
-      <path d="M12 3.5v17"/>
+  tablet: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 3.5A8.5 8.5 0 1 0 12 20.5Z"/>
+      <path d="M12 3.5A8.5 8.5 0 1 1 12 20.5Z" opacity="0.55"/>
     </svg>`,
-  capsule: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3.3" y="9.5" width="17.4" height="7" rx="3.5" transform="rotate(-35 12 12)"/>
-      <line x1="12" y1="7.3" x2="12" y2="16.7" transform="rotate(-35 12 12)"/>
+  capsule: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <g transform="rotate(-35 12 12)">
+        <path d="M3.5 12a5 5 0 0 1 5-5h3v10h-3a5 5 0 0 1-5-5Z"/>
+        <path d="M20.5 12a5 5 0 0 0-5-5h-3v10h3a5 5 0 0 0 5-5Z" opacity="0.55"/>
+      </g>
     </svg>`,
-  oval: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="12" cy="12" rx="9" ry="5.5"/>
+  oval: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 12a9 5.5 0 0 1 9-5.5v11A9 5.5 0 0 1 3 12Z"/>
+      <path d="M21 12a9 5.5 0 0 0-9-5.5v11A9 5.5 0 0 0 21 12Z" opacity="0.55"/>
     </svg>`,
-  syrup: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 2.5h6M10 2.5v4.2L6.3 12A4 4 0 0 0 9.7 21.5h4.6A4 4 0 0 0 17.7 12L14 6.7V2.5"/>
-      <path d="M7.3 15.5h9.4"/>
+  syrup: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 2h6v3.2l3.4 5.6a4.6 4.6 0 0 1-3.9 7h-4.9a4.6 4.6 0 0 1-3.9-7L9 5.2Z"/>
+      <rect x="7" y="14.3" width="10" height="2.1" opacity="0.4"/>
     </svg>`,
-  drop: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 2.8s6.2 7.3 6.2 12A6.2 6.2 0 1 1 5.8 14.8C5.8 10.1 12 2.8 12 2.8Z"/>
+  drop: `<svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2.5s6.5 7.6 6.5 12.3A6.5 6.5 0 1 1 5.5 14.8C5.5 10.1 12 2.5 12 2.5Z"/>
     </svg>`,
-  injection: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  injection: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
       <path d="M20.5 3.5 17 7M13.8 6.2l4 4-8.4 8.4-4.7 1-1.3-1.3 1-4.7 8.4-8.4Z"/>
       <path d="M11.2 8.8l4 4M9 11l4 4"/>
     </svg>`
@@ -811,11 +837,12 @@ function renderMeds(){
           <p class="dose-meta">${escapeHtml(med.dosage || "")} ${med.dosage ? "·" : ""} ${daysTxt}</p>
           <p class="times">${timesTxt}</p>
         </div>
-        <button class="icon-btn" data-edit="${med.id}" aria-label="ویرایش">✎</button>
-        <button class="icon-btn" data-del="${med.id}" aria-label="حذف">🗑</button>
+        <button class="icon-btn" data-edit="${med.id}" aria-label="ویرایش" data-icon="edit"></button>
+        <button class="icon-btn danger" data-del="${med.id}" aria-label="حذف" data-icon="trash"></button>
       </div>`;
   });
   el.innerHTML = html;
+  injectIcons();
 
   el.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => openSheet(b.dataset.edit)));
   el.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
@@ -1038,7 +1065,7 @@ document.getElementById("qs-test-btn").addEventListener("click", async () => {
   const title = "یادآور قرص — تست";
   const body = "این یک اعلان آزمایشی محلی است. اگر این را می‌بینی، اعلان‌ها درست کار می‌کنند.";
   if (navigator.serviceWorker && navigator.serviceWorker.controller){
-    navigator.serviceWorker.controller.postMessage({ type:"SHOW_REMINDER", title, body, tag:"test-notif" });
+    navigator.serviceWorker.controller.postMessage({ type:"SHOW_REMINDER", title, body, tag:"test-notif-" + Date.now() });
   } else {
     new Notification(title, { body, icon:"icons/icon-192.png" });
   }
