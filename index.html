@@ -306,6 +306,7 @@
   }
   .btn-primary{ background:var(--primary); color:#fff; }
   .btn-ghost{ background:var(--bg); color:var(--ink); }
+  .btn-outline{ background:var(--surface); color:var(--ink); border:1.5px solid var(--line); }
   .status-pill{
     font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:99px;
   }
@@ -364,7 +365,25 @@
     border:none; background:var(--bg); width:20px; height:20px; border-radius:50%;
     color:var(--ink-soft); cursor:pointer; font-size:12px; line-height:1;
   }
-  .add-time-row{ display:flex; gap:8px; align-items:center; }
+  .add-time-row{ display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+  .checkbox-row{
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; font-weight:600; color:var(--ink); cursor:pointer;
+  }
+  .checkbox-row input[type=checkbox]{ width:17px; height:17px; accent-color:var(--primary); cursor:pointer; }
+  .auto-time-panel{
+    display:none;
+    margin-top:10px; padding:12px; background:var(--surface);
+    border:1.5px solid var(--line); border-radius:var(--radius-sm);
+  }
+  .auto-time-panel.open{ display:block; }
+  .auto-time-cols{ display:flex; gap:10px; margin-bottom:10px; }
+  .auto-time-cols > div{ flex:1; }
+  .mini-label{ display:block; font-size:11.5px; color:var(--ink-soft); margin-bottom:5px; }
+  .auto-time-cols input{
+    width:100%; border:1.5px solid var(--line); border-radius:var(--radius-sm);
+    padding:9px 10px; font-family:inherit; font-size:14px; background:var(--bg); color:var(--ink);
+  }
   .add-time-row input[type=time]{
     flex:1; border:1.5px solid var(--line); border-radius:var(--radius-sm);
     padding:9px 10px; font-family:inherit; font-size:14px; background:var(--surface); color:var(--ink);
@@ -465,10 +484,6 @@
       <h2>تنظیمات</h2>
       <div class="qs-card">
         <h3>اقدامات سریع</h3>
-        <button type="button" class="qs-row" id="qs-install-btn">
-          <span class="qs-icon-badge" data-icon="install"></span>
-          راهنمای نصب برنامه
-        </button>
         <button type="button" class="qs-row" id="qs-test-btn">
           <span class="qs-icon-badge" data-icon="bell"></span>
           تست یادآوری
@@ -521,7 +536,24 @@
           <div class="time-chips" id="time-chips"></div>
           <div class="add-time-row">
             <input type="time" id="f-time-input" value="08:00" />
-            <button type="button" class="btn btn-ghost" id="add-time-btn">افزودن ساعت</button>
+            <button type="button" class="btn btn-outline" id="add-time-btn">افزودن ساعت</button>
+          </div>
+          <label class="checkbox-row">
+            <input type="checkbox" id="f-auto-toggle" />
+            <span>محاسبه‌ی خودکار ساعت‌های مصرف</span>
+          </label>
+          <div class="auto-time-panel" id="auto-time-panel">
+            <div class="auto-time-cols">
+              <div>
+                <label class="mini-label">هر چند ساعت</label>
+                <input type="number" id="f-auto-interval" min="1" max="24" value="8" />
+              </div>
+              <div>
+                <label class="mini-label">ساعت شروع</label>
+                <input type="time" id="f-auto-start" value="08:00" />
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline" id="auto-calc-btn" style="width:100%">محاسبه و افزودن ساعت‌ها</button>
           </div>
         </div>
         <div class="field">
@@ -973,6 +1005,8 @@ function openSheet(medId){
   buildShapePicker();
   buildDaysGrid();
   buildTimeChips();
+  document.getElementById("f-auto-toggle").checked = false;
+  document.getElementById("auto-time-panel").classList.remove("open");
 
   document.getElementById("overlay").classList.add("open");
 }
@@ -987,6 +1021,38 @@ document.getElementById("add-time-btn").addEventListener("click", () => {
   if (v && !draftTimes.includes(v)){
     draftTimes.push(v);
     buildTimeChips();
+  }
+});
+
+document.getElementById("f-auto-toggle").addEventListener("change", (e) => {
+  document.getElementById("auto-time-panel").classList.toggle("open", e.target.checked);
+});
+
+document.getElementById("auto-calc-btn").addEventListener("click", () => {
+  const interval = parseInt(document.getElementById("f-auto-interval").value, 10);
+  const start = document.getElementById("f-auto-start").value;
+  if (!interval || interval < 1 || interval > 24 || !start){
+    showToast("مقدارها رو درست وارد کن");
+    return;
+  }
+  const [sh, sm] = start.split(":").map(Number);
+  const startMin = sh * 60 + sm;
+  const count = Math.max(1, Math.round(24 / interval));
+  const computed = [];
+  for (let i = 0; i < count; i++){
+    const t = (startMin + i * interval * 60) % (24 * 60);
+    const hh = String(Math.floor(t / 60)).padStart(2, "0");
+    const mm = String(t % 60).padStart(2, "0");
+    const hhmm = `${hh}:${mm}`;
+    if (!computed.includes(hhmm)) computed.push(hhmm);
+  }
+  const preview = computed.slice().sort().map(toFa).join("، ");
+  if (confirm(`این ساعت‌ها اضافه بشه؟\n${preview}`)){
+    computed.forEach(t => { if (!draftTimes.includes(t)) draftTimes.push(t); });
+    buildTimeChips();
+    document.getElementById("f-auto-toggle").checked = false;
+    document.getElementById("auto-time-panel").classList.remove("open");
+    showToast("ساعت‌ها اضافه شد");
   }
 });
 
@@ -1125,7 +1191,6 @@ function closeInstallGuide(dismiss){
   document.getElementById("install-overlay").classList.remove("open");
   if (dismiss) localStorage.setItem(INSTALL_DISMISS_KEY, "1");
 }
-document.getElementById("qs-install-btn").addEventListener("click", () => { closeQuickSettings(); openInstallGuide(); });
 document.getElementById("install-later-btn").addEventListener("click", () => closeInstallGuide(true));
 document.getElementById("install-overlay").addEventListener("click", (e) => {
   if (e.target.id === "install-overlay") closeInstallGuide(true);
