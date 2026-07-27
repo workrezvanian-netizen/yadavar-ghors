@@ -502,6 +502,57 @@
 /* ================= داده و ذخیره‌سازی ================= */
 const STORAGE_KEY = "yadavar-ghors-meds-v1";
 const LOG_KEY = "yadavar-ghors-log-v1";
+
+/* ================= پوش نوتیفیکیشن واقعی (Cloudflare Worker) ================= */
+// بعد از دیپلوی ورکر، آدرسش رو اینجا جایگزین کن، مثلاً:
+// "https://yadavar-ghors-push.<subdomain>.workers.dev"
+const PUSH_WORKER_URL = "https://yadavar-ghors2.work-rezvanian.workers.dev";
+const VAPID_PUBLIC_KEY = "BPcBeuAL42Qzv7ydr2_qYKb1Iky8rXI0C7tNymhm0Ef3JDLwjYr2PNVhoTXaXJP0KV45Zk69SPTl143j8ws7HHE";
+
+function getDeviceId(){
+  let id = localStorage.getItem("yadavar-ghors-device-id");
+  if (!id){
+    id = "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem("yadavar-ghors-device-id", id);
+  }
+  return id;
+}
+
+function urlBase64ToUint8Array(base64String){
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+/** مرورگر رو برای Push مشترک می‌کنه (اگه از قبل نبود) و برنامه‌ی داروها رو با سرور یکی می‌کنه */
+async function syncPushToServer(){
+  if (!PUSH_WORKER_URL || PUSH_WORKER_URL.includes("YOUR-SUBDOMAIN")) return false;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+  if (Notification.permission !== "granted") return false;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    await fetch(PUSH_WORKER_URL + "/sync", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ deviceId: getDeviceId(), subscription: sub.toJSON(), meds })
+    });
+    return true;
+  } catch(e){
+    console.error("push sync failed", e);
+    return false;
+  }
+}
+
 const COLORS = ["#1F6F6B", "#D9A441", "#8B7FC7", "#C9673F", "#2C3E70", "#4E8C6B"];
 const WEEKDAYS = [
   {v:6, label:"ش"}, {v:0, label:"ی"}, {v:1, label:"د"}, {v:2, label:"س"},
@@ -773,6 +824,7 @@ function renderMeds(){
       saveMeds(meds);
       renderAll();
       showToast("دارو حذف شد");
+      syncPushToServer();
     }
   }));
 }
@@ -915,6 +967,7 @@ document.getElementById("med-form").addEventListener("submit", (e) => {
   closeSheet();
   renderAll();
   showToast("دارو ذخیره شد");
+  syncPushToServer();
 });
 
 /* ================= تب‌ها ================= */
@@ -945,6 +998,7 @@ function renderAll(){
 }
 renderAll();
 injectIcons();
+if ("Notification" in window && Notification.permission === "granted") syncPushToServer();
 
 /* ================= تنظیمات سریع (هدر) ================= */
 function openQuickSettings(){
@@ -965,14 +1019,30 @@ document.getElementById("qs-test-btn").addEventListener("click", async () => {
     const res = await Notification.requestPermission();
     if (res !== "granted"){ showToast("اجازهٔ اعلان داده نشد"); return; }
   }
+
+  const serverConfigured = PUSH_WORKER_URL && !PUSH_WORKER_URL.includes("YOUR-SUBDOMAIN");
+  if (serverConfigured){
+    const synced = await syncPushToServer();
+    if (synced){
+      try{
+        const res = await fetch(PUSH_WORKER_URL + "/test", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ deviceId: getDeviceId() })
+        });
+        if (res.ok){ showToast("اعلان تستِ واقعی از سرور ارسال شد"); return; }
+      } catch(e){ /* fall through to local test */ }
+    }
+  }
+
   const title = "یادآور قرص — تست";
-  const body = "این یک اعلان آزمایشی است. اگر این را می‌بینی، اعلان‌ها درست کار می‌کنند.";
+  const body = "این یک اعلان آزمایشی محلی است. اگر این را می‌بینی، اعلان‌ها درست کار می‌کنند.";
   if (navigator.serviceWorker && navigator.serviceWorker.controller){
     navigator.serviceWorker.controller.postMessage({ type:"SHOW_REMINDER", title, body, tag:"test-notif" });
   } else {
     new Notification(title, { body, icon:"icons/icon-192.png" });
   }
-  showToast("اعلان تست ارسال شد");
+  showToast("اعلان تست ارسال شد (محلی)");
 });
 
 document.getElementById("qs-reenable-btn").addEventListener("click", async () => {
@@ -985,8 +1055,12 @@ document.getElementById("qs-reenable-btn").addEventListener("click", async () =>
     }
   } catch(e){ /* ignore, still try permission */ }
   const res = await Notification.requestPermission();
-  if (res === "granted") showToast("نوتیفیکیشن دوباره فعال شد");
-  else showToast("اجازهٔ اعلان داده نشد");
+  if (res === "granted"){
+    const synced = await syncPushToServer();
+    showToast(synced ? "نوتیفیکیشن دوباره فعال و با سرور همگام شد" : "نوتیفیکیشن دوباره فعال شد");
+  } else {
+    showToast("اجازهٔ اعلان داده نشد");
+  }
 });
 
 /* ================= بررسی دوره‌ای برای اعلان ================= */

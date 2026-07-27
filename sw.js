@@ -39,11 +39,30 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// The page posts due reminders here so a notification can still be shown
-// even if the tab is in the background (as long as the browser keeps this
-// worker alive). True "app fully closed" alarms need a push server and are
-// not possible from a static, offline PWA — see the note in the app's
-// settings tab.
+// پیام واقعی Push که از سرور (Cloudflare Worker) می‌رسد — حتی وقتی برنامه کاملاً بسته باشد
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) {
+    data = { title: "یادآور قرص", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "یادآور قرص", {
+      body: data.body || "",
+      icon: "icons/icon-192.png",
+      badge: "icons/icon-96.png",
+      tag: data.tag,
+      dir: "rtl",
+      lang: "fa",
+      vibrate: [120, 60, 120],
+      data: { doseId: data.doseId }
+    })
+  );
+});
+
+// The page can also post a reminder directly (e.g. the in-app "تست یادآوری"
+// fallback) so a notification shows even if the tab is just in the background.
+// Real "app fully closed" alarms come through the push event above, sent by
+// the Cloudflare Worker backend.
 self.addEventListener("message", (event) => {
   const data = event.data || {};
   if (data.type === "SHOW_REMINDER") {
