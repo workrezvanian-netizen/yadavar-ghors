@@ -1,4 +1,4 @@
-const CACHE_NAME = "yadavar-ghors-v1";
+const CACHE_NAME = "yadavar-ghors-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
